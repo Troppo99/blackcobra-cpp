@@ -1,0 +1,6 @@
+1. Nama file ino wajib sama dengan nama folder, misal blink.ino maka harus
+   berada di folder blink
+2. urutan arduino-cli harus compile dulu baru upload.
+3. Compile : arduino-cli compile --fqbn arduino:avr:mega C:\coding\blackcobra-cpp\archives\blink\blink.ino
+4. Upload : arduino-cli upload -p COM3 --fqbn arduino:avr:mega C:\coding\blackcobra-cpp\archives\blink\blink.ino
+5. 
