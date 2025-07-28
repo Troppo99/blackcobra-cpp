@@ -1,11 +1,11 @@
 import os
 
 # === KONFIGURASI ===
-root_dir = r"C:\projects\black-cobra\File_Robot_RNV3-main\File_Robot_RNV3-main\Program Utama Robot (arduino)\robotRNV3_v2_02"
+root_dir = r"C:\coding\blackcobra-cpp"
 output_file = "assets/my_codes.txt"
 
 # Folder atau file yang ingin dikecualikan (bisa ditambah sesuai kebutuhan)
-excluded_folders = []
+excluded_folders = [".git", ".venv", "archives", "assets"]
 excluded_files = []
 
 # === PROSES ===

@@ -9,5 +9,5 @@ void loop() {
   delay(100);
   digitalWrite(13, LOW);
   delay(100);
-  Serial.println("Hello World");
+  Serial.println("Ini adalah blink");
 }

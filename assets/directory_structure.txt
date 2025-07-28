@@ -1,0 +1,42 @@
+blackcobra-cpp
+├── .gitignore
+├── .vscode
+│   ├── DankMono-Bold.otf
+│   ├── DankMono-Italic.otf
+│   ├── DankMono-Regular.otf
+│   ├── Fira_Code.zip
+│   ├── Inconsolata.zip
+│   ├── naming_convetions.txt
+│   ├── settings.json
+│   └── tasks.json
+├── serial_monitor.py
+├── src
+│   ├── milis
+│   │   └── milis.ino
+│   └── robotRNV3_v2_02
+│       ├── Info update.txt
+│       ├── RampsStepper.cpp
+│       ├── RampsStepper.h
+│       ├── command.cpp
+│       ├── command.h
+│       ├── config.h
+│       ├── desktop.ini
+│       ├── endstop.cpp
+│       ├── endstop.h
+│       ├── equipment.cpp
+│       ├── equipment.h
+│       ├── fanControl.cpp
+│       ├── fanControl.h
+│       ├── interpolation.cpp
+│       ├── interpolation.h
+│       ├── logger.cpp
+│       ├── logger.h
+│       ├── pinout
+│       │   ├── desktop.ini
+│       │   └── pinout.h
+│       ├── queue.h
+│       ├── robotGeometry.cpp
+│       ├── robotGeometry.h
+│       └── robotRNV3_v2_02.ino
+├── upload.ps1
+└── upload_gui.ps1

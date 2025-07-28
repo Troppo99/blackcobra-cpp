@@ -8,7 +8,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.println("Ini adalah milis");
+  Serial.println("Ini adalah milis src");
   unsigned long curMillis = millis();
   if (curMillis - prevMillis >= INTERVAL) {
     prevMillis = curMillis;
