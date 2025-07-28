@@ -93,6 +93,7 @@ const char startCmds[][28] PROGMEM = {
   "G0 Z0",
   ""                   // ← sentinel - jangan hilang!
 };
+const char NWR2_CMD[] PROGMEM =  "G0 X0 Y217 Z138 E0 F80";
 bool  startMode   = false;   // sedang memutar skrip?
 uint8_t startIdx  = 0;      // baris ke-berapa
 
@@ -170,10 +171,16 @@ void loop() {
           Logger::logINFO("AUTO-SCRIPT ABORTED");
           Serial.println(PRINT_REPLY_MSG); // kirim “ok”
         }
+        else if (inLine == "NWR2") {
+            if (command.processMessage("M252")) {
+                queue.push(command.getCmd());
+            }
+        }
         // ***** NORMAL COMMAND → masuk parser *****
         else if (command.processMessage(inLine)) {
           queue.push(command.getCmd());
-        } else {
+        }
+        else {
           printErr();
         }
       }
@@ -434,7 +441,19 @@ void executeCommand(Cmd cmd) {
       waitingForServo  = false;
       Logger::logINFO("AUTO-SCRIPT ABORTED");
       break;
-    
+    case 252: {
+      char line[32];
+      strcpy_P(line, NWR2_CMD);
+
+      if (command.processMessage(String(line))) {
+          queue.push(command.getCmd());
+          Logger::logINFO("NWR2: MOVE TO SAFE POSE");
+      } else {
+          Logger::logERROR("NWR2 PARSE FAIL");
+      }
+      break;              // <-- WAJIB supaya tidak jatuh ke default
+    }
+
     default: printErr();
     }
   }
