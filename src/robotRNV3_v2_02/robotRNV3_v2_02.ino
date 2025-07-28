@@ -60,6 +60,42 @@ Servo servoA;
 Servo servoB;
 
 static bool waitingForMotion = false;
+// ── AUTO-START SCRIPT ──────────────────────────────────────────────
+const char startCmds[][28] PROGMEM = {
+  "G0 E355 F85",
+  "G0 E100 F80",
+  "M7",
+  "G0 Z-80",
+  "M1",
+  "G0 Z0",
+  "G0 X100 E70 F70",
+  "G0 Z-80",
+  "M2",
+  "G4 S0.4",
+  "M6",
+  "G0 Z0",
+  "G0 X0",
+  "G0 Z130",
+  "G0 X100 E70 F70",
+  "G0 Z-80",
+  "M7",
+  "G0 Z-80",
+  "M1",
+  "G0 Z0",
+  "G0 Z0",
+  "G0 X0",
+  "G0 Z130",
+  "G0 E100 F50",
+  "G0 Z-80",
+  "M2",
+  "G4 S0.4",
+  "M6",
+  "G0 Z0",
+  ""                   // ← sentinel - jangan hilang!
+};
+bool  startMode   = false;   // sedang memutar skrip?
+uint8_t startIdx  = 0;      // baris ke-berapa
+
 
 void setup() {
   Serial.begin(BAUD);
@@ -98,21 +134,56 @@ void setup() {
   }
   interpolator.setInterpolation(INITIAL_X, INITIAL_Y, INITIAL_Z, INITIAL_E0, INITIAL_X, INITIAL_Y, INITIAL_Z, INITIAL_E0);
   
-//-------------------------------------IO------------------------------------------------
-  pinMode(IO1_PIN, INPUT);
-  pinMode(IO2_PIN, INPUT);
-  pinMode(IO3_PIN, INPUT);
-//-----------------------------------------------------------------------------------------
-  lg1.cmdOff();
-  lg2.cmdOff();
-  lg3.cmdOff();
-  servoA.attach(SERVO_PIN_A);  // Pin Servo A
-  servoB.attach(SERVO_PIN);  // Pin Servo B
-  servoA.write(90);  // Set awal ke 50°
-  servoB.write(MAX_SERVO);  // Set awal ke 50°
+  //-------------------------------------IO------------------------------------------------
+    pinMode(IO1_PIN, INPUT);
+    pinMode(IO2_PIN, INPUT);
+    pinMode(IO3_PIN, INPUT);
+  //-----------------------------------------------------------------------------------------
+    lg1.cmdOff();
+    lg2.cmdOff();
+    lg3.cmdOff();
+    servoA.attach(SERVO_PIN_A);  // Pin Servo A
+    servoB.attach(SERVO_PIN);  // Pin Servo B
+    servoA.write(90);  // Set awal ke 50°
+    servoB.write(MAX_SERVO);  // Set awal ke 50°
 }
 
 void loop() {
+  /* ---------- POLL SERIAL SETIAP ITERASI ------------- */
+  static String inLine = "";
+  while (Serial.available()) {
+    char c = Serial.read();
+    if (c == '\r' || c == '\n') {          // satu baris selesai
+      if (inLine.length() > 0) {
+        inLine.trim();
+        inLine.toUpperCase();
+
+        // ***** EMERGENCY COMMAND *****
+        if (inLine == "NWR99") {
+          // hentikan semua segera
+          startMode = false;
+          while (!queue.isEmpty()) queue.pop();
+          interpolator.abort();
+          freezeSteppers();                // fungsi yg kita buat kemarin
+          waitingForMotion = false;
+          waitingForServo  = false;
+          Logger::logINFO("AUTO-SCRIPT ABORTED");
+          Serial.println(PRINT_REPLY_MSG); // kirim “ok”
+        }
+        // ***** NORMAL COMMAND → masuk parser *****
+        else if (command.processMessage(inLine)) {
+          queue.push(command.getCmd());
+        } else {
+          printErr();
+        }
+      }
+      inLine = "";                         // reset buffer
+    } else {
+      inLine += c;                         // bangun string
+    }
+  }
+  /* --------- END OF SERIAL POLLING -------------------- */
+
 
   interpolator.updateActualPosition();
   geometry.set(interpolator.getXPosmm(), interpolator.getYPosmm(), interpolator.getZPosmm());
@@ -129,12 +200,23 @@ void loop() {
     stepperRail.update();
   #endif
   fan.update();
+  if (startMode && interpolator.isFinished() && !queue.isFull()) {
 
-  // Jika antrean perintah tidak penuh dan tidak sedang menunggu gerakan, ambil perintah baru
-  if (!queue.isFull() && !waitingForMotion && !waitingForServo) {
-      if (command.handleGcode()) {
-          queue.push(command.getCmd());
-      }
+    char line[28];
+    strcpy_P(line, startCmds[startIdx]);     // ambil 1 baris dari PROGMEM
+
+    if (line[0] == '\0') {                   // sentinel, skrip selesai
+        startMode = false;
+    } else {
+        // Gunakan parser bawaan → ubah string jadi Cmd lalu push ke queue
+        if (command.processMessage(String(line))) {
+            queue.push(command.getCmd());
+            startIdx++;
+        } else {
+            Logger::logERROR("SCRIPT PARSE FAIL: " + String(line));
+            startMode = false;               // hentikan bila ada error
+        }
+    }
   }
 
   // Jika ada perintah dalam antrean dan gerakan sebelumnya selesai, eksekusi perintah
@@ -149,7 +231,7 @@ void loop() {
   }
 
   // Kirim "ok" setelah motor stepper selesai bergerak
-if (waitingForMotion && interpolator.isFinished()) {
+  if (waitingForMotion && interpolator.isFinished()) {
     if (!waitingForServo) {  // Pastikan servo tidak bergerak sebelum mengirim "ok"
         if (PRINT_REPLY) {
           Serial.println(PRINT_REPLY_MSG);
@@ -336,6 +418,22 @@ void executeCommand(Cmd cmd) {
                 lg2.cmdOff();
                 break;
     }
+    case 250:   // === START SCRIPT (NWR1) ===
+      startIdx  = 0;        // mulai lagi dari baris pertama
+      startMode = true;
+      Logger::logINFO("AUTO-SCRIPT STARTED");
+      break;
+
+    case 251:   // === ABORT SCRIPT (NWR99) ===
+      startMode = false;
+      // Kosongkan semua perintah yang belum jalan
+      while (!queue.isEmpty()) queue.pop();
+      interpolator.abort();
+      freezeSteppers();
+      waitingForMotion = false;
+      waitingForServo  = false;
+      Logger::logINFO("AUTO-SCRIPT ABORTED");
+      break;
     
     default: printErr();
     }
@@ -378,3 +476,11 @@ void homeSequence(){
   Logger::logINFO("HOMING COMPLETE");
 }
 
+void freezeSteppers() {
+  stepperHigher.setPosition(stepperHigher.getPosition());
+  stepperLower .setPosition(stepperLower .getPosition());
+  stepperRotate.setPosition(stepperRotate.getPosition());
+  #if RAIL
+    stepperRail .setPosition(stepperRail .getPosition());
+  #endif
+}

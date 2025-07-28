@@ -245,3 +245,12 @@ bool Interpolation::isAllowedPosition(float pos_tracker[4]) {
   }
   return retVal;
 }
+void Interpolation::abort(){
+  updateActualPosition();    // hitung posisi terkini
+  xStartmm = xPosmm;         // anggap posisi saat ini sebagai target
+  yStartmm = yPosmm;
+  zStartmm = zPosmm;
+  eStartmm = ePosmm;
+  xDelta = yDelta = zDelta = eDelta = 0;
+  state   = 1;               // tandai "selesai"
+}

@@ -41,6 +41,7 @@ public:
   Point getPosOffset() const;
   int speed_profile;
   void setSpeedProfile(int new_speed_profile);
+  void abort();
   
 private:
   Point pos_offset;
