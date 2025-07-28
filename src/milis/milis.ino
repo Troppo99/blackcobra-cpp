@@ -1,4 +1,4 @@
-const int buttonPins[4] = {25, 27, 29, 31};
+const int buttonPins[4] = {4, 27, 29, 31};
 const unsigned long intervals[4] = {
   100,   // Pin 25
   300,   // Pin 27
