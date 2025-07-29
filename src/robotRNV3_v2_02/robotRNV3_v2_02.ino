@@ -71,10 +71,10 @@ const char startCmds[][48] PROGMEM = {
 const char NWR0_CMD[] PROGMEM =  "G0 X0 Y217 Z138 E0 F80";
 bool  startMode   = false;
 uint8_t startIdx  = 0;
-const uint8_t BTN_CNT = 4;
-const uint8_t buttonPins[BTN_CNT] = {4, 29, 27, 31};
-const char*   buttonMsgs[BTN_CNT] = {"G28", "NWR0", "NWR1", "NWR99"};
-bool          btnLast[BTN_CNT]    = {HIGH, HIGH, HIGH, HIGH};
+const uint8_t BTN_CNT = 5;
+const uint8_t buttonPins[BTN_CNT] = {4, 29, 27, 31, 33};
+const char*   buttonMsgs[BTN_CNT] = {"G28", "NWR0", "NWR1", "NWR99", "M114"};
+bool          btnLast[BTN_CNT]    = {HIGH, HIGH, HIGH, HIGH, HIGH};
 
 
 void setup() {
