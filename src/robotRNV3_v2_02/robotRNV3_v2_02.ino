@@ -91,11 +91,15 @@ const char startCmds[][28] PROGMEM = {
   "G4 S0.4",
   "M6",
   "G0 Z0",
-  ""                   // ← sentinel - jangan hilang!
+  ""
 };
-const char NWR2_CMD[] PROGMEM =  "G0 X0 Y217 Z138 E0 F80";
-bool  startMode   = false;   // sedang memutar skrip?
-uint8_t startIdx  = 0;      // baris ke-berapa
+const char NWR0_CMD[] PROGMEM =  "G0 X0 Y217 Z138 E0 F80";
+bool  startMode   = false;
+uint8_t startIdx  = 0;
+const uint8_t BTN_CNT = 4;
+const uint8_t buttonPins[BTN_CNT] = {4, 29, 27, 31};
+const char*   buttonMsgs[BTN_CNT] = {"G28", "NWR0", "NWR1", "NWR99"};
+bool          btnLast[BTN_CNT]    = {HIGH, HIGH, HIGH, HIGH};
 
 
 void setup() {
@@ -147,9 +151,32 @@ void setup() {
     servoB.attach(SERVO_PIN);  // Pin Servo B
     servoA.write(90);  // Set awal ke 50°
     servoB.write(MAX_SERVO);  // Set awal ke 50°
+    for (uint8_t i = 0; i < BTN_CNT; ++i) pinMode(buttonPins[i], INPUT_PULLUP);
 }
 
 void loop() {
+  for (uint8_t i = 0; i < BTN_CNT; ++i) {
+    bool now = digitalRead(buttonPins[i]);
+    if (now == LOW && btnLast[i] == HIGH) {
+      String msg(buttonMsgs[i]);
+      if (msg == "NWR99") {               // tombol pin 31
+        startMode = false;
+        while (!queue.isEmpty()) queue.pop();
+        interpolator.abort();
+        freezeSteppers();
+        waitingForMotion = waitingForServo = false;
+        Logger::logINFO("AUTO-SCRIPT ABORTED");
+        Serial.println(PRINT_REPLY_MSG);
+      }
+      else if (command.processMessage(msg)) {
+        queue.push(command.getCmd());
+      } else {
+        Logger::logERROR("BTN PARSE FAIL: " + msg);
+      }
+    }
+    btnLast[i] = now;
+  }
+
   /* ---------- POLL SERIAL SETIAP ITERASI ------------- */
   static String inLine = "";
   while (Serial.available()) {
@@ -170,11 +197,6 @@ void loop() {
           waitingForServo  = false;
           Logger::logINFO("AUTO-SCRIPT ABORTED");
           Serial.println(PRINT_REPLY_MSG); // kirim “ok”
-        }
-        else if (inLine == "NWR2") {
-            if (command.processMessage("M252")) {
-                queue.push(command.getCmd());
-            }
         }
         // ***** NORMAL COMMAND → masuk parser *****
         else if (command.processMessage(inLine)) {
@@ -443,13 +465,13 @@ void executeCommand(Cmd cmd) {
       break;
     case 252: {
       char line[32];
-      strcpy_P(line, NWR2_CMD);
+      strcpy_P(line, NWR0_CMD);
 
       if (command.processMessage(String(line))) {
           queue.push(command.getCmd());
-          Logger::logINFO("NWR2: MOVE TO SAFE POSE");
+          Logger::logINFO("NWR0: MOVE TO SAFE POSE");
       } else {
-          Logger::logERROR("NWR2 PARSE FAIL");
+          Logger::logERROR("NWR0 PARSE FAIL");
       }
       break;              // <-- WAJIB supaya tidak jatuh ke default
     }

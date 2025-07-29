@@ -37,6 +37,8 @@ bool Command::processMessage(String msg){
   // Tambahkan pengecekan untuk "VACUM ON" dan "VACUM OFF"
   if (msg.equalsIgnoreCase("VACUM ON")) {
     msg = "M209";
+  } else if (msg.equalsIgnoreCase("NWR0")) {
+  msg = "M252";
   } else if(msg.equalsIgnoreCase("NWR1")){
     msg = "M250";
   } else if (msg.equalsIgnoreCase("NWR99")){
