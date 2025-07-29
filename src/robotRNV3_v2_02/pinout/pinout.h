@@ -42,7 +42,7 @@
 #define BYJ_PIN_2          59
 #define BYJ_PIN_3          64
 
-#define SERVO_PIN           4
+#define SERVO_PIN           6
 #define SERVO_PIN_A         5
 
 #define LG1_PIN            8
