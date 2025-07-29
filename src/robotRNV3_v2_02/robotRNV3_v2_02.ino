@@ -61,36 +61,11 @@ Servo servoB;
 
 static bool waitingForMotion = false;
 // ── AUTO-START SCRIPT ──────────────────────────────────────────────
-const char startCmds[][28] PROGMEM = {
-  "G0 E355 F85",
-  "G0 E100 F80",
-  "M7",
-  "G0 Z-80",
-  "M1",
-  "G0 Z0",
-  "G0 X100 E70 F70",
-  "G0 Z-80",
-  "M2",
-  "G4 S0.4",
-  "M6",
-  "G0 Z0",
-  "G0 X0",
-  "G0 Z130",
-  "G0 X100 E70 F70",
-  "G0 Z-80",
-  "M7",
-  "G0 Z-80",
-  "M1",
-  "G0 Z0",
-  "G0 Z0",
-  "G0 X0",
-  "G0 Z130",
-  "G0 E100 F50",
-  "G0 Z-80",
-  "M2",
-  "G4 S0.4",
-  "M6",
-  "G0 Z0",
+const char startCmds[][48] PROGMEM = {
+  "G0 X0.00 Y217.00 Z138.00 E355.00 F100.00",
+  "G0 X0.00 Y311.00 Z35.00 E355.00 F100.00",
+  "G0 X0.00 Y311.00 Z35.00 E0.00 F100.00",
+  "G0 X0 Y217 Z138 E0 F100"
   ""
 };
 const char NWR0_CMD[] PROGMEM =  "G0 X0 Y217 Z138 E0 F80";
