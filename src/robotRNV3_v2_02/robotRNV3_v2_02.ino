@@ -63,9 +63,10 @@ static bool waitingForMotion = false;
 // ── AUTO-START SCRIPT ──────────────────────────────────────────────
 const char startCmds[][48] PROGMEM = {
   "G0 X0.00 Y217.00 Z138.00 E355.00 F100.00",
-  "G0 X0.00 Y311.00 Z35.00 E355.00 F100.00",
-  "G0 X0.00 Y311.00 Z35.00 E0.00 F100.00",
-  "G0 X0 Y217 Z138 E0 F100"
+  "G0 X0.00 Y243.00 Z-7.00 E355.00 F80.00",
+  "G0 X0.00 Y243.00 Z-7.00 E0.00 F100.00",
+  "G0 X215.00 Y215.00 Z-7.00 E0.00 F80.00",
+  "G0 X0 Y217 Z138 E0 F80"
   ""
 };
 const char NWR0_CMD[] PROGMEM =  "G0 X0 Y217 Z138 E0 F80";

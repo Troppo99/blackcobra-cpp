@@ -1,0 +1,88 @@
+{
+  "version": "2.0.0",
+  "inputs": [
+    {
+      "id": "sketch",
+      "type": "promptString",
+      "description": "Folder sketch",
+      "default": "src/robotRNV3_v2_02"
+    },
+    {
+      "id": "port",
+      "type": "promptString",
+      "description": "Port COM",
+      "default": "COM3"
+    },
+    {
+      "id": "baud",
+      "type": "promptString",
+      "description": "Baud-rate",
+      "default": "115200"
+    }
+  ],
+  "tasks": [
+    /* ---------- 1. COMPILE ---------- */
+    {
+      "label": "compile",
+      "type": "shell",
+      "command": "arduino-cli",
+      "args": [
+        "compile",
+        "--fqbn",
+        "arduino:avr:mega",
+        "${input:sketch}"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    /* ---------- 2. UPLOAD (depends on compile) ---------- */
+    {
+      "label": "upload",
+      "dependsOn": "compile",
+      "type": "shell",
+      "command": "arduino-cli",
+      "args": [
+        "upload",
+        "-p",
+        "${input:port}",
+        "--fqbn",
+        "arduino:avr:mega",
+        "${input:sketch}"
+      ],
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    },
+    /* ---------- 3. SERIAL MONITOR (jendela baru) ---------- */
+    {
+      "label": "serial-monitor",
+      "type": "shell",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "start \"\" cmd /k \"arduino-cli monitor -p ${input:port} -c baudrate=${input:baud}\""
+      ],
+      "isBackground": true,
+      "presentation": {
+        "reveal": "never"
+      },
+      "problemMatcher": []
+    },
+    /* ---------- 4. COMPOUND TASK (Ctrl-Shift-B) ---------- */
+    {
+      "label": "Upload & Monitor",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "upload",
+        "serial-monitor"
+      ],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}
