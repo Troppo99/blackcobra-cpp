@@ -1,7 +1,5 @@
 #include <Arduino.h>
-//GENERAL CONFIG SETTINGS
 #include "config.h"
-
 #include "robotGeometry.h"
 #include "interpolation.h"
 #include "RampsStepper.h"
@@ -21,18 +19,15 @@ unsigned long servoMoveStartTime = 0;
 int servoMoveDuration = 0;  // Waktu estimasi servo sampai target (ms)
 
 
-//STEPPER OBJECTS
 RampsStepper stepperHigher(X_STEP_PIN, X_DIR_PIN, X_ENABLE_PIN, INVERSE_X_STEPPER, MAIN_GEAR_TEETH, MOTOR_GEAR_TEETH, MICROSTEPS, STEPS_PER_REV);
 RampsStepper stepperLower(Y_STEP_PIN, Y_DIR_PIN, Y_ENABLE_PIN, INVERSE_Y_STEPPER, MAIN_GEAR_TEETH, MOTOR_GEAR_TEETH, MICROSTEPS, STEPS_PER_REV);
 RampsStepper stepperRotate(Z_STEP_PIN, Z_DIR_PIN, Z_ENABLE_PIN, INVERSE_Z_STEPPER, MAIN_GEAR_TEETH, MOTOR_GEAR_TEETH, MICROSTEPS, STEPS_PER_REV);
 
-//RAIL OBJECTS
 #if RAIL
   RampsStepper stepperRail(E0_STEP_PIN, E0_DIR_PIN, E0_ENABLE_PIN, INVERSE_E0_STEPPER, MAIN_GEAR_TEETH, MOTOR_GEAR_TEETH, MICROSTEPS, STEPS_PER_REV);
   Endstop endstopE0(E0_MIN_PIN, E0_DIR_PIN, E0_STEP_PIN, E0_ENABLE_PIN, E0_MIN_INPUT, E0_HOME_STEPS, HOME_DWELL, false);
 #endif
 
-//ENDSTOP OBJECTS
 Endstop endstopX(X_MIN_PIN, X_DIR_PIN, X_STEP_PIN, X_ENABLE_PIN, X_MIN_INPUT, X_HOME_STEPS, HOME_DWELL, false);
 Endstop endstopY(Y_MIN_PIN, Y_DIR_PIN, Y_STEP_PIN, Y_ENABLE_PIN, Y_MIN_INPUT, Y_HOME_STEPS, HOME_DWELL, false);
 Endstop endstopZ(Z_MIN_PIN, Z_DIR_PIN, Z_STEP_PIN, Z_ENABLE_PIN, Z_MIN_INPUT, Z_HOME_STEPS, HOME_DWELL, false);
@@ -44,23 +39,19 @@ Equipment lg3(LG3_PIN);
 Equipment led(LED_PIN);
 FanControl fan(FAN_PIN, FAN_DELAY);
 
-//EXECUTION & COMMAND OBJECTS
 RobotGeometry geometry(END_EFFECTOR_OFFSET, LOW_SHANK_LENGTH, HIGH_SHANK_LENGTH);
 Interpolation interpolator;
 Queue<Cmd> queue(QUEUE_SIZE);
 Command command;
 
-//---------------------------------IO-------------------------------------------
 int IO1Before = LOW;
 int IO2Before = LOW;
 int IO3Before = LOW;
-//------------------------------------------------------------------------------
 
 Servo servoA;
 Servo servoB;
 
 static bool waitingForMotion = false;
-// ── AUTO-START SCRIPT ──────────────────────────────────────────────
 const char startCmds[][48] PROGMEM = {
   "G0 X0.00 Y217.00 Z138.00 E355.00 F100.00",
   "G0 X0.00 Y243.00 Z-7.00 E355.00 F80.00",
@@ -80,9 +71,9 @@ bool          btnLast[BTN_CNT]    = {HIGH, HIGH, HIGH, HIGH, HIGH};
 
 void setup() {
   Serial.begin(BAUD);
-  stepperHigher.setPositionRad(PI / 2.0); // 90°
-  stepperLower.setPositionRad(0);         // 0°
-  stepperRotate.setPositionRad(0);        // 0°
+  stepperHigher.setPositionRad(PI / 2.0); 
+  stepperLower.setPositionRad(0);
+  stepperRotate.setPositionRad(0);
   #if RAIL
   stepperRail.setPosition(0);
   #endif
@@ -115,18 +106,16 @@ void setup() {
   }
   interpolator.setInterpolation(INITIAL_X, INITIAL_Y, INITIAL_Z, INITIAL_E0, INITIAL_X, INITIAL_Y, INITIAL_Z, INITIAL_E0);
   
-  //-------------------------------------IO------------------------------------------------
     pinMode(IO1_PIN, INPUT);
     pinMode(IO2_PIN, INPUT);
     pinMode(IO3_PIN, INPUT);
-  //-----------------------------------------------------------------------------------------
     lg1.cmdOff();
     lg2.cmdOff();
     lg3.cmdOff();
-    servoA.attach(SERVO_PIN_A);  // Pin Servo A
-    servoB.attach(SERVO_PIN);  // Pin Servo B
-    servoA.write(90);  // Set awal ke 50°
-    servoB.write(MAX_SERVO);  // Set awal ke 50°
+    servoA.attach(SERVO_PIN_A);
+    servoB.attach(SERVO_PIN);
+    servoA.write(90);
+    servoB.write(MAX_SERVO);
     for (uint8_t i = 0; i < BTN_CNT; ++i) pinMode(buttonPins[i], INPUT_PULLUP);
 }
 
@@ -135,7 +124,7 @@ void loop() {
     bool now = digitalRead(buttonPins[i]);
     if (now == LOW && btnLast[i] == HIGH) {
       String msg(buttonMsgs[i]);
-      if (msg == "NWR99") {               // tombol pin 31
+      if (msg == "NWR99") {
         startMode = false;
         while (!queue.isEmpty()) queue.pop();
         interpolator.abort();
@@ -153,18 +142,15 @@ void loop() {
     btnLast[i] = now;
   }
 
-  /* ---------- POLL SERIAL SETIAP ITERASI ------------- */
   static String inLine = "";
   while (Serial.available()) {
     char c = Serial.read();
-    if (c == '\r' || c == '\n') {          // satu baris selesai
+    if (c == '\r' || c == '\n') {
       if (inLine.length() > 0) {
         inLine.trim();
         inLine.toUpperCase();
 
-        // ***** EMERGENCY COMMAND *****
         if (inLine == "NWR99") {
-          // hentikan semua segera
           startMode = false;
           while (!queue.isEmpty()) queue.pop();
           interpolator.abort();
@@ -174,7 +160,6 @@ void loop() {
           Logger::logINFO("AUTO-SCRIPT ABORTED");
           Serial.println(PRINT_REPLY_MSG); // kirim “ok”
         }
-        // ***** NORMAL COMMAND → masuk parser *****
         else if (command.processMessage(inLine)) {
           queue.push(command.getCmd());
         }
@@ -182,12 +167,11 @@ void loop() {
           printErr();
         }
       }
-      inLine = "";                         // reset buffer
+      inLine = "";
     } else {
-      inLine += c;                         // bangun string
+      inLine += c;
     }
   }
-  /* --------- END OF SERIAL POLLING -------------------- */
 
 
   interpolator.updateActualPosition();
@@ -213,46 +197,39 @@ void loop() {
     if (line[0] == '\0') {                   // sentinel, skrip selesai
         startMode = false;
     } else {
-        // Gunakan parser bawaan → ubah string jadi Cmd lalu push ke queue
         if (command.processMessage(String(line))) {
             queue.push(command.getCmd());
             startIdx++;
         } else {
             Logger::logERROR("SCRIPT PARSE FAIL: " + String(line));
-            startMode = false;               // hentikan bila ada error
+            startMode = false;
         }
     }
   }
 
-  // Jika ada perintah dalam antrean dan gerakan sebelumnya selesai, eksekusi perintah
   if (!queue.isEmpty() && interpolator.isFinished() && !waitingForMotion && !waitingForServo) {
       Cmd currentCmd = queue.pop();
       executeCommand(currentCmd);
       
-      // Hanya set waitingForMotion jika bukan perintah M208
       if (!(currentCmd.id == 'M' && currentCmd.num == 208)) {
           waitingForMotion = true;
       }
   }
 
-  // Kirim "ok" setelah motor stepper selesai bergerak
   if (waitingForMotion && interpolator.isFinished()) {
-    if (!waitingForServo) {  // Pastikan servo tidak bergerak sebelum mengirim "ok"
+    if (!waitingForServo) {
         if (PRINT_REPLY) {
           Serial.println(PRINT_REPLY_MSG);
         }
-        waitingForMotion = false;  // Reset flag setelah stepper selesai
+        waitingForMotion = false;
     }
 }
 
-// Kirim "ok" setelah servo selesai bergerak
 if (waitingForServo && (millis() - servoMoveStartTime >= servoMoveDuration)) {
-    waitingForServo = false;  // Reset flag setelah servo selesai
+    waitingForServo = false;
     targetServoA = -1;
     targetServoB = -1;
 }
-
-//-----------------------------------------------------------------------------
 
   if (millis() % 500 < 250) {
     led.cmdOn();
@@ -261,7 +238,6 @@ if (waitingForServo && (millis() - servoMoveStartTime >= servoMoveDuration)) {
     led.cmdOff();
   }
 
- //============== SENSOR =======================================================
   if (digitalRead(IO1_PIN) == HIGH && IO1Before == LOW) {
       Logger::logINFO("S1 ON");
       IO1Before = HIGH;
@@ -318,11 +294,10 @@ void executeCommand(Cmd cmd) {
               float waktuPerDerajat = 5;
               float waktuA = 0, waktuB = 0;
 
-              // Cek dan proses cmd.valueA
               if (!isnan(cmd.valueA) && cmd.valueA >= 0 && cmd.valueA <= 180) {
-                  float posisiSekarangA = servoA.read();  // Baca posisi saat ini
-                  float deltaA = abs(cmd.valueA - posisiSekarangA); // Hitung selisih sudut
-                  waktuA = deltaA * waktuPerDerajat; // Hitung estimasi waktu
+                  float posisiSekarangA = servoA.read();
+                  float deltaA = abs(cmd.valueA - posisiSekarangA);
+                  waktuA = deltaA * waktuPerDerajat;
 
                   servoA.write(cmd.valueA);
                   logMessage += "A:" + String(cmd.valueA, 2);
@@ -332,10 +307,9 @@ void executeCommand(Cmd cmd) {
                   Serial.println("Nilai cmd.valueA di luar rentang yang diizinkan!");
               }
 
-              // Cek dan proses cmd.valueB
               if (!isnan(cmd.valueB) && cmd.valueB >= MIN_SERVO && cmd.valueB <= MAX_SERVO) {
-                  float posisiSekarangB = servoB.read();  
-                  float deltaB = abs(cmd.valueB - posisiSekarangB); 
+                  float posisiSekarangB = servoB.read();
+                  float deltaB = abs(cmd.valueB - posisiSekarangB);
                   waktuB = deltaB * waktuPerDerajat; 
 
                   servoB.write(cmd.valueB);
@@ -349,7 +323,6 @@ void executeCommand(Cmd cmd) {
               logMessage += "]";
               Logger::logINFO(logMessage);
 
-              // Aktifkan flag untuk menunggu servo selesai
               waitingForServo = true;
               servoMoveStartTime = millis();
 
