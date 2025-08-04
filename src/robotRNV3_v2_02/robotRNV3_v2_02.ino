@@ -63,11 +63,13 @@ const char startCmds[][48] PROGMEM = {
 const char NWR0_CMD[] PROGMEM =  "G0 X0 Y217 Z138 E0 F80";
 bool  startMode   = false;
 uint8_t startIdx  = 0;
-const uint8_t BTN_CNT = 5;
-const uint8_t buttonPins[BTN_CNT] = {4, 29, 27, 31, 33};
-const char*   buttonMsgs[BTN_CNT] = {"G28", "NWR0", "NWR1", "NWR99", "M114"};
-bool          btnLast[BTN_CNT]    = {HIGH, HIGH, HIGH, HIGH, HIGH};
+const uint8_t BTN_CNT = 3;
+const uint8_t buttonPins[BTN_CNT] = {4, 29, 31};
+const char*   buttonMsgs[BTN_CNT] = {"G28", "NWR0", "NWR99"};
+bool btnLast[BTN_CNT] = {HIGH, HIGH, HIGH};
 
+const uint8_t LIMIT_NO_PIN = 27;
+// const uint8_t LIMIT_NC_PIN = 33;
 
 void setup() {
   Serial.begin(BAUD);
@@ -117,9 +119,43 @@ void setup() {
     servoA.write(90);
     servoB.write(MAX_SERVO);
     for (uint8_t i = 0; i < BTN_CNT; ++i) pinMode(buttonPins[i], INPUT_PULLUP);
+    pinMode(LIMIT_NO_PIN, INPUT_PULLUP);
+    // pinMode(LIMIT_NC_PIN, INPUT_PULLUP);
 }
 
 void loop() {
+  const uint32_t LIMIT_HOLD_MS = 1500;
+  static uint32_t holdStartMs = 0;
+  static bool     holdActive  = false;
+  static bool     nwrSent     = false;
+
+  bool noClosed = digitalRead(LIMIT_NO_PIN) == LOW;
+  // bool ncOpen   = digitalRead(LIMIT_NC_PIN) == HIGH;
+  bool comboOK  = noClosed;
+
+  if (comboOK)
+  {
+      if (!holdActive)
+      {
+          holdActive  = true;
+          holdStartMs = millis();
+      }
+      else if (!nwrSent && millis() - holdStartMs >= LIMIT_HOLD_MS)
+      {
+          if (command.processMessage("NWR1")) {
+              queue.push(command.getCmd());
+              Logger::logINFO("LIMIT-SWITCH (OK ≥1.5 s) ⇒ NWR1");
+          } else {
+              Logger::logERROR("LIMIT PARSE FAIL");
+          }
+          nwrSent = true;
+      }
+  }
+  else
+  {
+      holdActive = false;
+      nwrSent    = false;
+  }
   for (uint8_t i = 0; i < BTN_CNT; ++i) {
     bool now = digitalRead(buttonPins[i]);
     if (now == LOW && btnLast[i] == HIGH) {
